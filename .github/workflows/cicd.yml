@@ -47,7 +47,7 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # 8. Docker Hub에 이미지 푸시
+      # 8. Docker Hub Push
       - name: Docker Hub Push
         run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/${{ secrets.DOCKERHUB_IMAGENAME }}
 
@@ -56,20 +56,6 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
-      # 코드 체크아웃 추가
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      # deploy.sh 파일을 EC2로 전송
-      - name: Copy deploy script to EC2
-        uses: appleboy/scp-action@master
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USERNAME }}
-          key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
-          port: ${{ secrets.EC2_SSH_PORT }}
-          source: "deploy.sh"
-          target: "/home/${{ secrets.EC2_USERNAME }}"
 
       # 9. AWS EC2에 SSH 접속하여 배포 진행
       - name: AWS EC2 Connection
@@ -77,12 +63,26 @@ jobs:
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
-          key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}  # SSH Key를 사용하여 보안 강화
+          key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
           port: ${{ secrets.EC2_SSH_PORT }}
           timeout: 60s
           script: |
             export DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}
             export DOCKERHUB_IMAGENAME=${{ secrets.DOCKERHUB_IMAGENAME }}
-            
-            chmod +x deploy.sh
-            ./deploy.sh
+
+            # 기존 컨테이너 종료 및 삭제
+            echo "🛑 Stopping and removing old container..."
+            docker stop $DOCKERHUB_IMAGENAME || true
+            docker rm $DOCKERHUB_IMAGENAME || true
+
+            # 최신 이미지 가져오기
+            echo "🚀 Pulling latest Docker image..."
+            docker pull $DOCKERHUB_USERNAME/$DOCKERHUB_IMAGENAME:latest
+
+            # 새 컨테이너 실행
+            echo "🔄 Running new container..."
+            docker run -d --name $DOCKERHUB_IMAGENAME -p 8080:8080 -e TZ=Asia/Seoul $DOCKERHUB_USERNAME/$DOCKERHUB_IMAGENAME:latest
+
+            # 실행된 컨테이너 확인
+            echo "✅ Deployment complete!"
+            docker ps -a
