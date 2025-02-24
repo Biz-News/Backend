@@ -1,5 +1,5 @@
-# 1. Base image 선택 (JDK 17)
-FROM openjdk:17-jdk
+# 1. Base image 선택 (JDK 21)
+FROM openjdk:21-jdk
 
 # 2. 작업 디렉토리 설정
 WORKDIR /app
@@ -11,4 +11,4 @@ COPY build/libs/*.jar app.jar
 EXPOSE 8080
 
 # 5. 실행 명령어
-ENTRYPOINT ["java", "-jar", "app.jar"]
+ENTRYPOINT ["java", "-Dspring.profiles.active=docker", "-jar", "app.jar"]
