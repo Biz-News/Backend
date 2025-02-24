@@ -56,6 +56,20 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
+      # 코드 체크아웃 추가
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # deploy.sh 파일을 EC2로 전송
+      - name: Copy deploy script to EC2
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+          port: ${{ secrets.EC2_SSH_PORT }}
+          source: "deploy.sh"
+          target: "/home/${{ secrets.EC2_USERNAME }}"
 
       # 9. AWS EC2에 SSH 접속하여 배포 진행
       - name: AWS EC2 Connection
@@ -70,8 +84,5 @@ jobs:
             export DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}
             export DOCKERHUB_IMAGENAME=${{ secrets.DOCKERHUB_IMAGENAME }}
             
-            # 기존 deploy.sh 제거 및 최신 버전 다운로드
-            rm -f deploy.sh
-            wget https://raw.githubusercontent.com/Leaf-Village-News-Summary/Backend/main/deploy.sh
             chmod +x deploy.sh
             ./deploy.sh

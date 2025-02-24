@@ -6,7 +6,7 @@ IMAGE_NAME="${DOCKERHUB_IMAGENAME}"
 DOCKER_IMAGE="${DOCKER_USERNAME}/${IMAGE_NAME}"
 BLUE_PORT=8080
 GREEN_PORT=8081
-NETWORK_NAME="leaf_village_network"
+NETWORK_NAME="backend_network"
 
 # 🔹 현재 활성화된 서버 확인
 get_active_server() {
