@@ -8,6 +8,13 @@ BLUE_PORT=8080
 GREEN_PORT=8081
 NETWORK_NAME="backend_network"
 
+# 🔹 네트워크 확인 및 생성
+echo "🌐 Checking Docker network..."
+if ! docker network inspect $NETWORK_NAME >/dev/null 2>&1; then
+    echo "Creating Docker network: $NETWORK_NAME"
+    docker network create $NETWORK_NAME
+fi
+
 # 🔹 현재 활성화된 서버 확인
 get_active_server() {
     if docker ps --filter "name=blue" --format "{{.Names}}" | grep -q "blue"; then
@@ -25,7 +32,11 @@ deploy_new_version() {
 
     echo "🚀 Deploying new version to $new_color server..."
     docker pull $DOCKER_IMAGE:latest
-    docker run -d --name $container_name -p $port:8080 --network $NETWORK_NAME -e TZ=Asia/Seoul $DOCKER_IMAGE:latest
+    docker run -d --name $container_name \
+        -p $port:8080 \
+        --network $NETWORK_NAME \
+        -e TZ=Asia/Seoul \
+        $DOCKER_IMAGE:latest
 }
 
 # 🔹 헬스 체크 수행
@@ -36,7 +47,7 @@ health_check() {
 
     echo "🩺 Performing health check..."
     while [ $attempt -le $max_attempts ]; do
-        if curl -s "http://localhost:$port/health" | grep -q "UP"; then
+        if curl -s "http://localhost:$port/actuator/health" | grep -q "UP"; then
             echo "✅ Health check passed!"
             return 0
         fi
