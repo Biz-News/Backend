@@ -19,10 +19,10 @@ public class DatabaseTestController {
     public ResponseEntity<String> testDatabaseConnection() {
         try {
             jdbcTemplate.queryForObject("SELECT 1", Integer.class);
-            return ResponseEntity.ok("✅ RDS 연결 성공 (Spring Boot)");
+            return ResponseEntity.ok("RDS 연결 성공 (Spring Boot)");
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("❌ RDS 연결 실패: " + e.getMessage());
+                    .body("RDS 연결 실패: " + e.getMessage());
         }
     }
 }

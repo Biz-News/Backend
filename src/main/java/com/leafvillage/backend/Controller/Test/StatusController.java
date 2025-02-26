@@ -11,6 +11,6 @@ public class StatusController {
 
     @GetMapping
     public ResponseEntity<String> checkStatus() {
-        return ResponseEntity.ok("✅ 백엔드 서버 정상 작동 중!");
+        return ResponseEntity.ok("백엔드 서버 정상 작동 중!");
     }
 }
