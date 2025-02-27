@@ -41,6 +41,9 @@ public class CompanyApiService {
         if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
             // JSON 파싱
             String json = response.getBody();
+            System.out.println("===============================================================");
+            System.out.println(json);
+            System.out.println("===============================================================");
             try{
                 JsonNode root = objectMapper.readTree(json);
                 JsonNode itemsNode = root.path("response")
@@ -49,7 +52,7 @@ public class CompanyApiService {
                                   .path("item");
 
             // 정확한 매칭을 위한 리스트
-            String normalizedInput = corpNm.replaceAll("\\s+", "");
+            String normalizedInput = corpNm.replaceAll("\\s+", "").trim();
             String variant1 = normalizedInput;
             String variant2 = "(주)" + normalizedInput;
             String variant3 = normalizedInput + "(주)";
@@ -64,7 +67,7 @@ public class CompanyApiService {
                     }
                 }else if (!itemsNode.isMissingNode()) {
             // 단일 객체인 경우에도 일치 여부 확인
-                    String name = itemsNode.path("corpNm").asText("").replaceAll("\\s+", "");
+                    String name = itemsNode.path("corpNm").asText("").replaceAll("\\s+", "").trim();
                     if (name.equals(variant1) || name.equals(variant2) || name.equals(variant3)) {
                         exactMatches.add(itemsNode);
                      } 
@@ -72,6 +75,7 @@ public class CompanyApiService {
 
             if (exactMatches.isEmpty()) {
                 System.out.println("정확한 일치 항목이 없습니다.");
+                return "{}";
             } else {
                 System.out.println("=== 정확하게 일치하는 항목 (" + exactMatches.size() + "건) ===");
                 for (JsonNode item : exactMatches) {
