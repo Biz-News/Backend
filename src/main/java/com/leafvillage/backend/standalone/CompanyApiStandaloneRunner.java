@@ -19,6 +19,13 @@ public class CompanyApiStandaloneRunner {
         try {
             // API 호출 후 전체 JSON 응답 받기
             String fullJson = service.getCompanyDataByName(corpNm);
+
+            // 1) 전체 JSON을 콘솔에 출력 (디버그/확인용)
+            System.out.println("----- 전체 JSON 응답 -----");
+            System.out.println(fullJson);
+            System.out.println("----- 끝 -----");
+
+            // 2) JSON 파싱
             JsonNode root = mapper.readTree(fullJson);
             JsonNode itemsNode = root.path("response")
                                      .path("body")
@@ -52,15 +59,25 @@ public class CompanyApiStandaloneRunner {
             } else {
                 System.out.println("=== 정확하게 일치하는 항목 (" + exactMatches.size() + "건) ===");
                 for (JsonNode item : exactMatches) {
+                    // 주요 필드 추출
                     String companyName = item.path("corpNm").asText("회사명 없음");
                     String address = item.path("enpBsadr").asText("주소 없음");
                     String phone = item.path("enpTlno").asText("전화번호 없음");
                     String domain = item.path("enpHmpgUrl").asText("도메인 없음");
 
+                    // 추가로 대표자명, 사업자등록번호, 주요사업 등 더 파싱 (필드명은 API 문서 확인 필요)
+                    String representative = item.path("enpRprFnm").asText("N/A");   // 대표자명
+                    String bsnNo = item.path("enpBsnNo").asText("N/A");            // 사업자등록번호
+                    String mainBiz = item.path("enpMainbizNm").asText("N/A");      // 주요사업
+
                     System.out.println("회사명: " + companyName);
+                    System.out.println("대표자명: " + representative);
+                    System.out.println("사업자등록번호: " + bsnNo);
+                    System.out.println("주요사업: " + mainBiz);
                     System.out.println("주소: " + address);
                     System.out.println("전화번호: " + phone);
                     System.out.println("도메인: " + domain);
+
                     if (!domain.equals("도메인 없음")) {
                         String logoUrl = "https://logo.clearbit.com/" + domain;
                         System.out.println("Clearbit 로고 URL: " + logoUrl);

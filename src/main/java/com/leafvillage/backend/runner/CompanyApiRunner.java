@@ -9,99 +9,105 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Optional;
 import java.util.Scanner;
 
 @Component
 public class CompanyApiRunner implements CommandLineRunner {
 
     @Autowired
-    private CompanyApiService service;
+    private CompanyApiService companyApiService;
 
     @Autowired
     private CompanyRepository companyRepository;
 
     @Override
     public void run(String... args) throws Exception {
-        ObjectMapper mapper = new ObjectMapper();
         Scanner scanner = new Scanner(System.in);
-        while(true){
-        System.out.println("조회할 기업명을 입력하세요:");
-        String corpNm = scanner.hasNextLine() ? scanner.nextLine() : "기본기업명";
-        if ("exit".equalsIgnoreCase(corpNm.trim())) {
-            break;
-        }
-        try {
-            // API 호출 후 전체 JSON 응답 받기
-            String fullJson = service.getCompanyDataByName(corpNm);
-            JsonNode root = mapper.readTree(fullJson);
-            JsonNode itemsNode = root.path("response")
-                                     .path("body")
-                                     .path("items")
-                                     .path("item");
+        ObjectMapper mapper = new ObjectMapper();
 
-            // 기업명 정규화 및 (주) 관련 케이스 구분
-            String normalizedInput = corpNm.replaceAll("\\s+", "");
-            String variant1 = normalizedInput;
-            String variant2 = "(주)" + normalizedInput;
-            String variant3 = normalizedInput + "(주)";
-
-            List<JsonNode> exactMatches = new ArrayList<>();
-            if (itemsNode.isArray()) {
-                for (JsonNode item : itemsNode) {
-                    String name = item.path("corpNm").asText("").replaceAll("\\s+", "");
-                    if (name.equals(variant1) || name.equals(variant2) || name.equals(variant3)) {
-                        exactMatches.add(item);
-                    }
-                }
-            } else if (!itemsNode.isMissingNode()) {
-                String name = itemsNode.path("corpNm").asText("").replaceAll("\\s+", "");
-                if (name.equals(variant1) || name.equals(variant2) || name.equals(variant3)) {
-                    exactMatches.add(itemsNode);
-                }
+        while (true) {
+            System.out.println("조회할 기업명을 입력하세요 (종료하려면 'exit' 입력):");
+            String input = scanner.nextLine().trim();
+            if ("exit".equalsIgnoreCase(input)) {
+                break;
             }
 
-            // 결과 출력 및 DB 저장
-            if (exactMatches.isEmpty()) {
-                System.out.println(corpNm + " : 정확한 일치 항목 없음");
-            } else {
-                System.out.println("=== 정확하게 일치하는 항목 (" + exactMatches.size() + "건) ===");
-                for (JsonNode item : exactMatches) {
-                    String companyName = item.path("corpNm").asText("회사명 없음");
-                    String address = item.path("enpBsadr").asText("주소 없음");
-                    String phone = item.path("enpTlno").asText("전화번호 없음");
-                    String domain = item.path("enpHmpgUrl").asText("도메인 없음");
+            try {
+                // 1) API 호출
+                String fullJson = companyApiService.getCompanyDataByName(input);
+                JsonNode root = mapper.readTree(fullJson);
+                JsonNode itemsNode = root.path("response")
+                                         .path("body")
+                                         .path("items")
+                                         .path("item");
 
-                    System.out.println("회사명: " + companyName);
-                    System.out.println("주소: " + address);
-                    System.out.println("전화번호: " + phone);
-                    System.out.println("도메인: " + domain);
+                // 2) 일치 항목이 있는지 확인
+                if (itemsNode.isMissingNode() || (itemsNode.isArray() && itemsNode.size() == 0)) {
+                    System.out.println("[API] 일치하는 항목이 없습니다. 건너뜁니다.");
+                    continue;
+                }
 
+                // 단일 / 배열 구분 (예: 첫 번째만 사용)
+                JsonNode firstItem = itemsNode.isArray() ? itemsNode.get(0) : itemsNode;
+
+                // 3) API에서 가져온 회사명
+                String apiCompanyName = firstItem.path("corpNm").asText("").trim();
+                apiCompanyName = apiCompanyName.replace("(주)", "")
+                               .replace("[주]", "")
+                               .trim();
+                        
+                if (apiCompanyName.isEmpty()) {
+                    // 회사명이 없다면 업데이트 불가
+                    System.out.println("[API] 회사명이 없습니다. 건너뜁니다.");
+                    continue;
+                }
+
+                // 4) DB에서 레코드 찾기 (company 컬럼 기준)
+                Optional<Company> optCompany = companyRepository.findByCompany(apiCompanyName);
+                if (optCompany.isPresent()) {
+                    // === 이미 존재하는 레코드 => 업데이트 ===
+                    Company existing = optCompany.get();
+
+                    // 필요한 컬럼만 업데이트
+                    String address = firstItem.path("enpBsadr").asText("").trim();
+                    String phone = firstItem.path("enpTlno").asText("").trim();
+                    String domain = firstItem.path("enpHmpgUrl").asText("").trim();
+
+                    // 예시로 Null이거나 빈 값일 때만 업데이트
+                    if (existing.getAddress() == null || existing.getAddress().isEmpty()) {
+                        existing.setAddress(address);
+                    }
+                    if (existing.getPhoneNumber() == null || existing.getPhoneNumber().isEmpty()) {
+                        existing.setPhoneNumber(phone);
+                    }
+                    if (existing.getHomepageUrl() == null || existing.getHomepageUrl().isEmpty()) {
+                        existing.setHomepageUrl(domain);
+                    }
+
+                    // 로고 URL
                     String logoUrl = "도메인 정보 없음";
-                    if (!domain.equals("도메인 없음")) {
+                    if (!domain.isBlank()) {
                         logoUrl = "https://logo.clearbit.com/" + domain;
-                        System.out.println("Clearbit 로고 URL: " + logoUrl);
-                    } else {
-                        System.out.println("Clearbit 로고 URL: " + logoUrl);
                     }
-                    System.out.println("-----");
+                    if (existing.getLogoImage() == null || existing.getLogoImage().isEmpty()) {
+                        existing.setLogoImage(logoUrl);
+                    }
 
-                    // Company 엔티티 생성 후 DB에 저장
-                    Company company = new Company();
-                    company.setCorpNm(companyName);
-                    company.setAddress(address);
-                    company.setPhone(phone);
-                    company.setDomain(domain);
-                    company.setLogoUrl(logoUrl);
+                    // 실제 DB 업데이트
+                    companyRepository.save(existing);
+                    System.out.println("[업데이트 완료] 회사명 " + apiCompanyName + " 컬럼이 갱신되었습니다.");
 
-                    companyRepository.save(company);
+                } else {
+                    // === 존재하지 않는 레코드 => 새로 삽입하지 않고 스킵 ===
+                    System.out.println("[스킵] DB에 존재하지 않는 회사(" + apiCompanyName + ")입니다.");
                 }
+
+            } catch (Exception e) {
+                e.printStackTrace();
             }
-        } catch (Exception e) {
-            System.out.println("API 조회 중 오류 발생: " + e.getMessage());
-        } 
         }
+
         scanner.close();
     }
 }
