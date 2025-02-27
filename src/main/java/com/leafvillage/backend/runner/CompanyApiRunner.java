@@ -21,7 +21,7 @@ public class CompanyApiRunner implements CommandLineRunner {
     @Override
     public void run(String... args) {
         // ✅ 하드코딩된 회사명 (테스트할 기업 리스트)
-        List<String> corpNames = List.of("삼성전자", "현대자동차", "카카오");
+        List<String> corpNames = List.of("삼성생명", "네이버", "카카오");
 
         for (String corpNm : corpNames) {
             System.out.println("조회할 기업명: " + corpNm);

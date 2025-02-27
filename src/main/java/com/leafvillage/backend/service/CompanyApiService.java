@@ -29,7 +29,7 @@ public class CompanyApiService {
         UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(BASE_URL)
                 .queryParam("serviceKey", SERVICE_KEY)  // 대소문자도 브라우저와 동일하게
                 .queryParam("pageNo", 1)
-                .queryParam("numOfRows", 1) // 아마 이 부분에서 "=== 정확하게 일치하는 항목 (5건) ===" 문구가 반복적 출력되는 듯
+                .queryParam("numOfRows", 5) // 아마 이 부분에서 "=== 정확하게 일치하는 항목 (5건) ===" 문구가 반복적 출력되는 듯
                 .queryParam("resultType", "json")
                 .queryParam("corpNm", corpNm);
 
@@ -61,7 +61,7 @@ public class CompanyApiService {
                 if (itemsNode.isArray()) {
                     for (JsonNode item : itemsNode) {
                         String name = item.path("corpNm").asText("").replaceAll("\\s+", "");
-                        if (name.equals(variant1) || name.equals(variant2) || name.equals(variant3)) {
+                        if (name.equals(normalizedInput) || name.equals(variant1) || name.equals(variant2) || name.equals(variant3)) {
                             exactMatches.add(item);
                          }               
                     }
