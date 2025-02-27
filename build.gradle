@@ -2,6 +2,7 @@ plugins {
 	id 'java'
 	id 'org.springframework.boot' version '3.4.3'
 	id 'io.spring.dependency-management' version '1.1.7'
+	id 'application'  // 이 줄을 추가
 }
 
 group = 'com.leafvillage'
@@ -32,7 +33,7 @@ dependencies {
 	annotationProcessor 'org.projectlombok:lombok'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
-
+	implementation 'com.cloudinary:cloudinary-http44:1.29.0' // 최신 버전 확인
 	// 로컬 개발용 DB
 	runtimeOnly 'com.h2database:h2'
 
@@ -43,4 +44,10 @@ dependencies {
 
 tasks.named('test') {
 	useJUnitPlatform()
+}
+
+
+application {
+    // 실행할 메인 클래스의 FQCN(패키지명을 포함한 클래스 이름)을 지정합니다.
+    mainClassName = 'com.leafvillage.backend.DemoApplication'
 }

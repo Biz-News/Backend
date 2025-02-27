@@ -3,7 +3,7 @@ package com.leafvillage.backend.entity;
 import jakarta.persistence.*;
 
 @Entity
-@Table(name = "company")
+@Table(name = "company", schema = "news_db")
 public class Company {
 
     // 회사 고유 식별자(PK) - VARCHAR(36)으로 UUID 등 수동 저장을 가정
